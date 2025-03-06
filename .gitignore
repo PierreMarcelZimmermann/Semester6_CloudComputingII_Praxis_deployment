@@ -3,4 +3,16 @@
 .venv
 .env
 *.hcl
-.terraform
+
+# Terraform Files
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.bak
+*.log
+
+# Ignore Terraform plan files
+*.plan
+
+# Ignore .terraform directory (module cache, plugins, etc.)
+.terraform/
