@@ -28,11 +28,11 @@ ARM_CLIENT_ID="your-client-id"
 ARM_CLIENT_SECRET="your-client-secret"
 ARM_SUBSCRIPTION_ID="your-subscription-id"
 ARM_TENANT_ID="your-tenant-id"
-'''
+```
 Note: Replace the placeholders with your actual Azure Service Principal credentials. You can create a service principal using the Azure CLI:
-'''bash
+```bash
 az ad sp create-for-rbac --name "your-app-name" --role contributor --scopes /subscriptions/{subscription-id} --sdk-auth
-'''
+```
 
 2. Configure Terraform
 If you wish to change the SKU or ressouce region feel free to edit the variables.tf in the terraform directory.
