@@ -12,29 +12,3 @@
       command: terraform apply -auto-approve
       args:
         chdir: ../terraform  
-
-    - name: Fetch the API config file from Terraform
-      ansible.builtin.fetch:
-        src: ../terraform/config.json  
-        dest: /tmp/config.json
-        flat: yes
-
-- name: Transfer config to VM and print it
-  hosts: bwcloud  
-  gather_facts: no  
-
-  tasks:
-    - name: Copy the API config file to the VM
-      ansible.builtin.copy:
-        src: /tmp/config.json  
-        dest: /tmp/config.json
-        mode: '0644'
-
-    - name: Print the API config file content on VM
-      ansible.builtin.shell:
-        cmd: cat /tmp/config.json  
-      register: api_config_content
-
-    - name: Show the content of the config file
-      ansible.builtin.debug:
-        msg: "{{ api_config_content.stdout }}"

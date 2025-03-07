@@ -33,7 +33,7 @@ resource "azurerm_cognitive_account" "aivision" {
 }
 
 resource "local_file" "config_json" {
-  filename = "${path.module}/config.json"
+  filename = "${path.module}/../../app/config.json"  
   content  = jsonencode({
     AI_VISION_API_KEY  = azurerm_cognitive_account.aivision.primary_access_key
     AI_VISION_ENDPOINT = azurerm_cognitive_account.aivision.endpoint
