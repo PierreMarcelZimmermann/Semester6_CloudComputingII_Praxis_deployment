@@ -1,0 +1,15 @@
+- name: Print Hello World on localhost and remote machine
+  hosts: localhost, bwcloud
+  gather_facts: no  
+
+  tasks:
+    - name: Print Hello World on localhost
+      ansible.builtin.debug:
+        msg: "Hello World from localhost!"
+      when: inventory_hostname == 'localhost'
+
+    - name: Print Hello World on bwcloud machine
+      ansible.builtin.debug:
+        msg: "Hello World from bwcloud!"
+      when: inventory_hostname != 'localhost'
+      delegate_to: bwcloud
