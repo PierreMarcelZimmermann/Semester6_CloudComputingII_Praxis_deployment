@@ -16,7 +16,7 @@
     # Kopiere nur app.py auf die entfernte VM
     - name: Kopiere app.py
       copy:
-        src: ../../app/app.py
+        src: ../../app/backend/app.py
         dest: /home/app/app.py
         owner: azureadmin
         group: azureadmin
@@ -25,7 +25,7 @@
     # Kopiere nur requirements.txt auf die entfernte VM
     - name: Kopiere requirements.txt
       copy:
-        src: ../../app/requirements.txt
+        src: ../../app/backend/requirements.txt
         dest: /home/app/requirements.txt
         owner: azureadmin
         group: azureadmin
@@ -33,7 +33,7 @@
 
     - name: Kopiere requirements.txt
       copy:
-        src: ../../app/aivision_config.json
+        src: ../../app/backend/aivision_config.json
         dest: /home/app/aivision_config.json
         owner: azureadmin
         group: azureadmin
