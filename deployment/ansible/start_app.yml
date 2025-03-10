@@ -1,0 +1,70 @@
+---
+- name: Setup Backend on Remote VM
+  hosts: myVM
+  become: yes
+  tasks:
+
+    # Erstelle das Zielverzeichnis, falls es nicht existiert
+    - name: Erstelle /home/app Verzeichnis
+      file:
+        path: /home/app
+        state: directory
+        owner: azureadmin
+        group: azureadmin
+        mode: '0755'
+
+    # Kopiere nur app.py auf die entfernte VM
+    - name: Kopiere app.py
+      copy:
+        src: ../../app/app.py
+        dest: /home/app/app.py
+        owner: azureadmin
+        group: azureadmin
+        mode: '0644'
+
+    # Kopiere nur requirements.txt auf die entfernte VM
+    - name: Kopiere requirements.txt
+      copy:
+        src: ../../app/requirements.txt
+        dest: /home/app/requirements.txt
+        owner: azureadmin
+        group: azureadmin
+        mode: '0644'
+
+    - name: Kopiere requirements.txt
+      copy:
+        src: ../../app/aivision_config.json
+        dest: /home/app/aivision_config.json
+        owner: azureadmin
+        group: azureadmin
+        mode: '0644'
+
+    # Installiere python3-venv, falls es nicht installiert ist
+    - name: Installiere python3-venv
+      apt:
+        name: python3-venv
+        state: present
+        update_cache: yes
+
+    # Installiere virtualenv mit pip (falls es nicht installiert ist)
+    - name: Installiere virtualenv
+      apt:
+        name: python3-virtualenv
+        state: present
+        update_cache: yes
+
+    # Erstelle die virtuelle Umgebung
+    - name: Erstelle die virtuelle Umgebung
+      command: python3 -m venv /home/app/.venv
+
+    # Installiere die Anforderungen aus der requirements.txt in der virtuellen Umgebung
+    - name: Installiere die Anforderungen in der virtuellen Umgebung
+      pip:
+        requirements: /home/app/requirements.txt
+        virtualenv: /home/app/.venv/
+        
+    - name: Starte die Flask-Anwendung
+      shell: |
+        . /home/app/.venv/bin/activate && flask run --host=0.0.0.0 --port=5000
+      args:
+        chdir: /home/app
