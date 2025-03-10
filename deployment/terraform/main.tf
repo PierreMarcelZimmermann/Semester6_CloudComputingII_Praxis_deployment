@@ -79,8 +79,9 @@ resource "azurerm_network_security_group" "my_terraform_nsg" {
   }
 }
 
-# Netzwerkinterface
 resource "azurerm_network_interface" "my_terraform_nic" {
+  depends_on = [azurerm_public_ip.my_terraform_public_ip]  # Sicherstellen, dass die öffentliche IP-Adresse erstellt wird
+
   name                = "myNIC"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
@@ -92,6 +93,7 @@ resource "azurerm_network_interface" "my_terraform_nic" {
     public_ip_address_id          = azurerm_public_ip.my_terraform_public_ip.id
   }
 }
+
 
 # Sicherheitsgruppe an das Interface binden
 resource "azurerm_network_interface_security_group_association" "example" {
@@ -117,6 +119,8 @@ resource "azurerm_storage_account" "my_storage_account" {
 
 # Virtuelle Maschine
 resource "azurerm_linux_virtual_machine" "my_terraform_vm" {
+  depends_on = [azurerm_network_interface.my_terraform_nic]  # Sicherstellen, dass das NIC fertig ist
+
   name                  = "myVM"
   location              = azurerm_resource_group.rg.location
   resource_group_name   = azurerm_resource_group.rg.name
@@ -167,15 +171,27 @@ resource "azurerm_cognitive_account" "aivision" {
 }
 
 # Konfigurationsdatei für AI Vision speichern
-resource "local_file" "config_json" {
-  filename = "${path.module}/../../app/config.json"  
+resource "local_file" "aivisions_config" {
+  filename = "${path.module}/../../app/aivision_config.json"
   content  = jsonencode({
     AI_VISION_API_KEY  = azurerm_cognitive_account.aivision.primary_access_key
     AI_VISION_ENDPOINT = azurerm_cognitive_account.aivision.endpoint
+  })
+}
+
+resource "local_file" "vm_config" {
+  depends_on = [azurerm_public_ip.my_terraform_public_ip]  # Sicherstellen, dass die öffentliche IP-Adresse erstellt wird
+
+  filename = "${path.module}/../../app/vm_config.json"
+  content  = jsonencode({
     VM_PUBLIC_IP       = azurerm_public_ip.my_terraform_public_ip.ip_address
-    VM_PRIVATE_IP      = azurerm_network_interface.my_terraform_nic.private_ip_address
+    VM_PRIVATE_IP      = azurerm_network_interface.my_terraform_nic.ip_configuration[0].private_ip_address
     VM_USERNAME        = var.username
     VM_NAME            = azurerm_linux_virtual_machine.my_terraform_vm.name
     SSH_PORT           = 22
   })
+}
+# Output der öffentlichen IP-Adresse
+output "vm_public_ip" {
+  value = azurerm_public_ip.my_terraform_public_ip.ip_address
 }
