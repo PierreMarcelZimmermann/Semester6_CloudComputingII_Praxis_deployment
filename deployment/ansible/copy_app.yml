@@ -1,0 +1,10 @@
+- name: Copy the app directory to myVM
+  hosts: web_servers
+  gather_facts: no
+
+  tasks:
+  - name: Copy the app directory to remote VM
+    ansible.builtin.copy:
+      src: ../../app
+      dest: /home/app
+    become: yes

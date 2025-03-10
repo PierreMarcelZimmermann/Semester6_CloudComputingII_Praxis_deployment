@@ -80,7 +80,10 @@ resource "azurerm_network_security_group" "my_terraform_nsg" {
 }
 
 resource "azurerm_network_interface" "my_terraform_nic" {
-  depends_on = [azurerm_public_ip.my_terraform_public_ip]  # Sicherstellen, dass die öffentliche IP-Adresse erstellt wird
+  depends_on = [
+    azurerm_public_ip.my_terraform_public_ip,  # Hier explizit sicherstellen, dass die IP erstellt wird
+    azurerm_subnet.my_terraform_subnet         # Sicherstellen, dass das Subnetz auch existiert
+  ]
 
   name                = "myNIC"
   location            = azurerm_resource_group.rg.location
@@ -95,8 +98,12 @@ resource "azurerm_network_interface" "my_terraform_nic" {
 }
 
 
+
 # Sicherheitsgruppe an das Interface binden
 resource "azurerm_network_interface_security_group_association" "example" {
+  depends_on = [
+    azurerm_linux_virtual_machine.my_terraform_vm  # Make sure VM is removed first
+  ]
   network_interface_id      = azurerm_network_interface.my_terraform_nic.id
   network_security_group_id = azurerm_network_security_group.my_terraform_nsg.id
 }
@@ -179,18 +186,29 @@ resource "local_file" "aivisions_config" {
   })
 }
 
-resource "local_file" "vm_config" {
+# Ansible Inventory erstellen
+resource "local_file" "ansible_inventory" {
   depends_on = [azurerm_public_ip.my_terraform_public_ip]  # Sicherstellen, dass die öffentliche IP-Adresse erstellt wird
 
-  filename = "${path.module}/../../app/vm_config.json"
-  content  = jsonencode({
-    VM_PUBLIC_IP       = azurerm_public_ip.my_terraform_public_ip.ip_address
-    VM_PRIVATE_IP      = azurerm_network_interface.my_terraform_nic.ip_configuration[0].private_ip_address
-    VM_USERNAME        = var.username
-    VM_NAME            = azurerm_linux_virtual_machine.my_terraform_vm.name
-    SSH_PORT           = 22
-  })
+  filename = "${path.module}/../ansible/inventory.ini"
+  content  = <<EOT
+[web_servers]
+${azurerm_linux_virtual_machine.my_terraform_vm.name} ansible_host=${azurerm_public_ip.my_terraform_public_ip.ip_address} ansible_user=${var.username} ansible_ssh_private_key_file=${path.module}/../ansible/id_rsa
+
+[web_servers:vars]
+ansible_python_interpreter=/usr/bin/python3
+EOT
 }
+
+# Privaten SSH-Schlüssel speichern
+resource "local_file" "ansible_private_key" {
+  depends_on = [azurerm_linux_virtual_machine.my_terraform_vm]  # Sicherstellen, dass die VM existiert
+
+  filename = "${path.module}/../ansible/id_rsa"
+  content  = azapi_resource_action.ssh_public_key_gen.output.privateKey
+  file_permission = "0600"  # Setzt die richtigen Berechtigungen für den privaten Schlüssel
+}
+
 # Output der öffentlichen IP-Adresse
 output "vm_public_ip" {
   value = azurerm_public_ip.my_terraform_public_ip.ip_address
