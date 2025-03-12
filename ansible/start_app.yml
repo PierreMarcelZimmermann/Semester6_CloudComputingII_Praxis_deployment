@@ -1,123 +1,42 @@
----
-- name: Setup Backend und Frontend auf Remote VM
+- name: Start app on VM
   hosts: myVM
   become: yes
   tasks:
 
-    # Erstelle das Zielverzeichnis für das Backend, falls es nicht existiert
-    - name: Erstelle /home/app/backend Verzeichnis
-      file:
-        path: /home/app/backend
-        state: directory
-        owner: azureadmin
-        group: azureadmin
-        mode: '0755'
+    # Ensure pip for Python 3 is installed
+    - name: Install pip for Python 3
+      apt:
+        name: python3-pip
+        state: present
+        update_cache: yes
 
-    # Kopiere Backend-Dateien (ohne __pycache__)
-    - name: Kopiere Backend-Dateien (ohne __pycache__)
-      find:
-        paths: "../../app/backend"
-        recurse: yes
-        patterns: "*"
-        excludes:
-          - "__pycache__/*"
-      register: backend_files
+    # Clone the git repository into /home/azureadmin/app
+    - name: Clone the git repo
+      git:
+        repo: 'https://github.com/PierreMarcelZimmermann/Semester6_CloudComputingII_Praxis_app.git'
+        dest: /home/azureadmin/app
+        clone: yes
 
-    - name: Kopiere Backend-Dateien ins Zielverzeichnis
+    # Copy the aivision config file to the backend directory
+    - name: Copy aivision config
       copy:
-        src: "{{ item.path }}"
-        dest: "/home/app/backend/{{ item.path | basename }}"
-        owner: azureadmin
-        group: azureadmin
-        mode: '0644'
-      with_items: "{{ backend_files.files }}"
+        src: aivision_config.json
+        dest: /home/azureadmin/app/backend/aivision_config.json
 
-    # Installiere python3-venv, falls es nicht installiert ist
-    - name: Installiere python3-venv
-      apt:
-        name: python3-venv
-        state: present
-        update_cache: yes
-
-    # Installiere virtualenv mit pip (falls es nicht installiert ist)
-    - name: Installiere virtualenv
-      apt:
-        name: python3-virtualenv
-        state: present
-        update_cache: yes
-
-    # Erstelle die virtuelle Umgebung für das Backend
-    - name: Erstelle die virtuelle Umgebung
-      command: python3 -m venv /home/app/backend/.venv
-
-    # Installiere die Anforderungen aus der requirements.txt in der virtuellen Umgebung
-    - name: Installiere Backend-Anforderungen
+    # Install the backend dependencies with pip
+    - name: Install backend requirements with pip
       pip:
-        requirements: /home/app/backend/requirements.txt
-        virtualenv: /home/app/backend/.venv/
+        requirements: /home/azureadmin/app/backend/requirements.txt
 
-    # Starte die Flask-Anwendung im Hintergrund
-    - name: Starte Flask-Anwendung im Hintergrund
+    # Start the Flask app in the background
+    - name: Start Flask app in background
       shell: |
-        nohup . /home/app/backend/.venv/bin/activate && flask run --host=0.0.0.0 --port=5000 > /home/app/backend/flask.log 2>&1 &
+        nohup flask run --host=0.0.0.0 --port=5000 > /home/azureadmin/app/backend/flask.log 2>&1 &
       args:
-        chdir: /home/app/backend
+        chdir: /home/azureadmin/app/backend
 
-    # Installiere rsync auf der Remote-VM, falls nicht installiert
-    - name: Installiere rsync auf der Remote-VM
-      apt:
-        name: rsync
-        state: present
-        update_cache: yes
-
-    # Erstelle das Zielverzeichnis für das Frontend, falls es nicht existiert
-    - name: Erstelle /home/app/frontend Verzeichnis
-      file:
-        path: /home/app/frontend
-        state: directory
-        owner: azureadmin
-        group: azureadmin
-        mode: '0755'
-
-    # Finde alle Dateien im Frontend-Verzeichnis (außer node_modules)
-    - name: Finde alle Dateien im Frontend-Verzeichnis (außer node_modules)
-      find:
-        paths: "../../app/frontend"
-        recurse: yes
-        patterns: "*"
-        excludes:
-          - "node_modules/*"
-      register: frontend_files
-
-    # Kopiere Frontend-Dateien ins Zielverzeichnis
-    - name: Kopiere Frontend-Dateien ins Zielverzeichnis
-      copy:
-        src: "{{ item.path }}"
-        dest: "/home/app/frontend/{{ item.path | basename }}"
-        owner: azureadmin
-        group: azureadmin
-        mode: '0644'
-      with_items: "{{ frontend_files.files }}"
-
-    # Kopiere package.json und package-lock.json Dateien (nur die notwendigsten)
-    - name: Kopiere package.json
-      copy:
-        src: ../../app/frontend/package.json
-        dest: /home/app/frontend/package.json
-        owner: azureadmin
-        group: azureadmin
-        mode: '0644'
-
-    - name: Kopiere package-lock.json
-      copy:
-        src: ../../app/frontend/package-lock.json
-        dest: /home/app/frontend/package-lock.json
-        owner: azureadmin
-        group: azureadmin
-        mode: '0644'
-
-    # Installiere Node.js und npm (wird hier korrekt für Ubuntu installiert)
-    - name: Installiere Node.js und npm
+    # Install Node.js and npm
+    - name: Install Node.js and npm
       apt:
         name:
           - curl
@@ -127,35 +46,37 @@
         state: present
         update_cache: yes
 
-    - name: Füge NodeSource APT-Repository hinzu
+    # Add NodeSource APT repository for Node.js
+    - name: Add NodeSource APT repository
       shell: |
         curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
       args:
-        creates: /usr/bin/node
+        creates: /usr/bin/node  # Skip if Node.js is already installed
 
-    - name: Installiere Node.js und npm (mit dem richtigen Paket)
+    # Install Node.js and npm (with the correct package)
+    - name: Install Node.js and npm (with the correct package)
       apt:
         name:
           - nodejs
         state: present
         update_cache: yes
 
-    # Installiere die Frontend-Abhängigkeiten mit npm (installiert nur, was in package.json definiert ist)
-    - name: Installiere Frontend-Abhängigkeiten mit npm
+    # Install frontend dependencies using npm
+    - name: Install frontend dependencies with npm
       npm:
-        path: /home/app/frontend
+        path: /home/azureadmin/app/frontend
         state: present
 
-    # Baue das Frontend (starte den Build mit npx)
-    - name: Baue das Frontend
+    # Build the frontend (with npx next build)
+    - name: Build frontend
       shell: |
-        cd /home/app/frontend && npx next build
+        cd /home/azureadmin/app/frontend && npx next build
       args:
-        chdir: /home/app/frontend
+        chdir: /home/azureadmin/app/frontend
 
-    # Starte die Next.js-Anwendung mit npx
-    - name: Starte die Next.js-Anwendung mit npx
+    # Start the Next.js app in the background using npx
+    - name: Start Next.js app with npx in background
       shell: |
-        cd /home/app/frontend && npx next dev --host 0.0.0.0 --port 3000
+        nohup npx next dev --port 3000 > /home/azureadmin/app/frontend/next.log 2>&1 &
       args:
-        chdir: /home/app/frontend
+        chdir: /home/azureadmin/app/frontend
