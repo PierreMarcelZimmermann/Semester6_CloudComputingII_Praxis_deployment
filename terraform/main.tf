@@ -78,13 +78,24 @@ resource "azurerm_network_security_group" "my_terraform_nsg" {
     destination_address_prefix = "*"
   }
    security_rule {
-    name                       = "HTTP"
+    name                       = "HTTP5000"
     priority                   = 1002
     direction                  = "Inbound"
     access                     = "Allow"
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "5000"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+  security_rule {
+    name                       = "HTTP3000"
+    priority                   = 1003
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "3000"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
@@ -191,7 +202,7 @@ resource "azurerm_cognitive_account" "aivision" {
 
 # Konfigurationsdatei für AI Vision speichern
 resource "local_file" "aivisions_config" {
-  filename = "${path.module}/../../app/aivision_config.json"
+  filename = "${path.module}/../ansible/aivision_config.json"
   content  = jsonencode({
     AI_VISION_API_KEY  = azurerm_cognitive_account.aivision.primary_access_key
     AI_VISION_ENDPOINT = azurerm_cognitive_account.aivision.endpoint
