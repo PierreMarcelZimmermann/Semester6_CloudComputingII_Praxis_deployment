@@ -37,6 +37,59 @@ resource "azurerm_resource_group" "aivision" {
   location = var.resource_group_location
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+resource "azurerm_mysql_flexible_server" "example" {
+  name                         = "digital-bison-xxyz123"
+  resource_group_name          = azurerm_resource_group.rg.name
+  location                     = "Germany North"
+  administrator_login          = "sqladmin"
+  administrator_password       = "P@ssw0rd1234"  # Passwort für den Admin-Benutzer
+  version                      = "5.7"  # Beispiel für mysql Version
+  create_mode                  = "Default"
+
+    
+  sku_name                     = "MO_Standard_E4ds_v4"  # Beispiel für SKU (die SKU hängt von deinem Bedarf ab)
+}
+
+resource "azurerm_mysql_flexible_database" "example" {
+  name                = "exampledb"
+  resource_group_name = azurerm_resource_group.rg.name
+  server_name         = azurerm_mysql_flexible_server.example.name
+
+  charset             = "utf8mb4"
+  collation           = "utf8mb4_unicode_ci"
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Virtuelles Netzwerk und Subnetz
 resource "azurerm_virtual_network" "my_terraform_network" {
   name                = "myVnet"
@@ -235,4 +288,13 @@ resource "local_file" "ansible_private_key" {
 # Output der öffentlichen IP-Adresse
 output "vm_public_ip" {
   value = azurerm_public_ip.my_terraform_public_ip.ip_address
+}
+
+
+resource "local_file" "db_config" {
+  content = jsonencode({
+    connection_string = "Server=${azurerm_mysql_flexible_server.example.fqdn};Database=${azurerm_mysql_flexible_database.example.name};User Id=${azurerm_mysql_flexible_server.example.administrator_login};Password=${azurerm_mysql_flexible_server.example.administrator_password};"
+  })
+
+  filename = "${path.module}/../ansible/db_config.json"
 }
