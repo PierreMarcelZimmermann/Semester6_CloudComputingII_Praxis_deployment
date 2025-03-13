@@ -48,7 +48,12 @@ resource "azurerm_resource_group" "aivision" {
 
 
 
-
+resource "random_password" "mysql_admin_password" {
+  length  = 16
+  upper   = true
+  lower   = true
+  numeric  = true
+}
 
 
 
@@ -58,13 +63,12 @@ resource "azurerm_mysql_flexible_server" "example" {
   resource_group_name          = azurerm_resource_group.rg.name
   location                     = "Germany North"
   administrator_login          = "sqladmin"
-  administrator_password       = "P@ssw0rd1234"  # Passwort für den Admin-Benutzer
-  version                      = "5.7"  # Beispiel für mysql Version
+  administrator_password       = random_password.mysql_admin_password.result  # Dynamisch generiertes Passwort
+  version                      = "5.7"
   create_mode                  = "Default"
-
-    
-  sku_name                     = "MO_Standard_E4ds_v4"  # Beispiel für SKU (die SKU hängt von deinem Bedarf ab)
+  sku_name                     = "MO_Standard_E4ds_v4"
 }
+
 
 resource "azurerm_mysql_flexible_database" "example" {
   name                = "exampledb"
@@ -73,6 +77,14 @@ resource "azurerm_mysql_flexible_database" "example" {
 
   charset             = "utf8mb4"
   collation           = "utf8mb4_unicode_ci"
+}
+
+resource "azurerm_mysql_flexible_server_firewall_rule" "allow_all_ips" {
+  name                 = "allow-all-ips"
+  resource_group_name  = azurerm_resource_group.rg.name
+  server_name          = azurerm_mysql_flexible_server.example.name
+  start_ip_address     = "0.0.0.0"
+  end_ip_address       = "255.255.255.255"  # Ermöglicht den Zugriff von allen IP-Adressen
 }
 
 
@@ -178,11 +190,14 @@ resource "azurerm_network_interface" "my_terraform_nic" {
 # Sicherheitsgruppe an das Interface binden
 resource "azurerm_network_interface_security_group_association" "example" {
   depends_on = [
-    azurerm_linux_virtual_machine.my_terraform_vm  # Make sure VM is removed first
+    azurerm_network_interface.my_terraform_nic,
+    azurerm_network_security_group.my_terraform_nsg
   ]
+
   network_interface_id      = azurerm_network_interface.my_terraform_nic.id
   network_security_group_id = azurerm_network_security_group.my_terraform_nsg.id
 }
+
 
 # Storage Account für Boot Diagnostics
 resource "random_id" "random_id" {
@@ -292,9 +307,15 @@ output "vm_public_ip" {
 
 
 resource "local_file" "db_config" {
-  content = jsonencode({
-    connection_string = "Server=${azurerm_mysql_flexible_server.example.fqdn};Database=${azurerm_mysql_flexible_database.example.name};User Id=${azurerm_mysql_flexible_server.example.administrator_login};Password=${azurerm_mysql_flexible_server.example.administrator_password};"
-  })
+  content = <<-EOT
+{
+  "connection_string": "Server=${azurerm_mysql_flexible_server.example.fqdn};",
+  "database_name": "${azurerm_mysql_flexible_database.example.name}",
+  "username": "${azurerm_mysql_flexible_server.example.administrator_login}",
+  "password": "${azurerm_mysql_flexible_server.example.administrator_password}"
+}
+EOT
 
   filename = "${path.module}/../ansible/db_config.json"
 }
+
