@@ -23,6 +23,11 @@
         src: aivision_config.json
         dest: /home/azureadmin/app/backend/aivision_config.json
 
+    - name: Copy database config
+      copy:
+        src: db_config.json
+        dest: /home/azureadmin/app/backend/db_config.json
+
     # Install the backend dependencies with pip
     - name: Install backend requirements with pip
       pip:
@@ -31,7 +36,7 @@
     # Start the Flask app in the background
     - name: Start Flask app in background
       shell: |
-        nohup flask run --host=0.0.0.0 --port=5000 > /home/azureadmin/app/backend/flask.log 2>&1 &
+        nohup sudo flask run --host=0.0.0.0 --port=5000 > /home/azureadmin/app/backend/flask.log 2>&1 &
       args:
         chdir: /home/azureadmin/app/backend
 
@@ -67,16 +72,22 @@
         path: /home/azureadmin/app/frontend
         state: present
 
-    # Build the frontend (with npx next build)
+     # Copy the react config file to the backend directory
+    - name: Copy react config
+      copy:
+        src: react_config.json
+        dest: /home/azureadmin/app/frontend/.public/react_config.json
+
+    # Build the frontend (with npm run build)
     - name: Build frontend
       shell: |
-        cd /home/azureadmin/app/frontend && npx next build
+        cd /home/azureadmin/app/frontend && sudo npm run build
       args:
         chdir: /home/azureadmin/app/frontend
 
-    # Start the Next.js app in the background using npx
-    - name: Start Next.js app with npx in background
+    # Start the Next.js app in the background using npm
+    - name: Start Next.js app with npm in the background
       shell: |
-        nohup npx next dev --port 3000 > /home/azureadmin/app/frontend/next.log 2>&1 &
+        nohup sudo npm start
       args:
         chdir: /home/azureadmin/app/frontend

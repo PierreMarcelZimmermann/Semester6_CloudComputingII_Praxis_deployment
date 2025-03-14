@@ -55,11 +55,13 @@ resource "random_password" "mysql_admin_password" {
   numeric  = true
 }
 
-
+resource "random_id" "server_name" {
+  byte_length = 8
+}
 
 
 resource "azurerm_mysql_flexible_server" "example" {
-  name                         = "digital-bison-xxyz123"
+    name                = "digital-bison-${random_id.server_name.hex}"  # Einzigartiger Servername
   resource_group_name          = azurerm_resource_group.rg.name
   location                     = "Germany North"
   administrator_login          = "sqladmin"
@@ -309,7 +311,7 @@ output "vm_public_ip" {
 resource "local_file" "db_config" {
   content = <<-EOT
 {
-  "connection_string": "Server=${azurerm_mysql_flexible_server.example.fqdn};",
+  "server": "${azurerm_mysql_flexible_server.example.fqdn}",
   "database_name": "${azurerm_mysql_flexible_database.example.name}",
   "username": "${azurerm_mysql_flexible_server.example.administrator_login}",
   "password": "${azurerm_mysql_flexible_server.example.administrator_password}"
@@ -319,3 +321,9 @@ EOT
   filename = "${path.module}/../ansible/db_config.json"
 }
 
+resource "local_file" "react_config" {
+  filename = "${path.module}/../ansible/react_config.json"
+  content  = jsonencode({
+    backend_address = azurerm_public_ip.my_terraform_public_ip.ip_address
+  })
+}
