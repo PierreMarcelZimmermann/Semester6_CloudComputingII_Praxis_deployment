@@ -69,11 +69,11 @@
       args:
         chdir: /home/azureadmin/app/frontend
         executable: /bin/bash
-        
+
       # Start Streamlit dashboard in the background using nohup
     - name: Start Streamlit dashboard with nohup
       shell: |
-        nohup sudo streamlit run /home/azureadmin/app/dashboard.py --server.port 5001 > /home/azureadmin/app/dashboard.log 2>&1 &
+        nohup sudo streamlit run /home/azureadmin/app/backend/dashboard.py --server.port 5001 > /home/azureadmin/app/dashboard.log 2>&1 &
       args:
-        chdir: /home/azureadmin/app
+        chdir: /home/azureadmin/app/backend
         executable: /bin/bash
