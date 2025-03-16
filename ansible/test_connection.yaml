@@ -1,0 +1,14 @@
+- name: Print Hello World on localhost and remote machine
+  hosts: localhost, web_servers
+  gather_facts: no  
+
+  tasks:
+    - name: Print Hello World on localhost
+      ansible.builtin.debug:
+        msg: "Hello World from localhost!"
+      when: inventory_hostname == 'localhost'
+
+    - name: Print Hello World on web_servers
+      ansible.builtin.debug:
+        msg: "Hello World from VM!"
+      when: inventory_hostname != 'localhost'
