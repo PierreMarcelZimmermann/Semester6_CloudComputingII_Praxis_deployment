@@ -1,79 +1,85 @@
-- name: deploy app onto vm
+---
+# This Ansible playbook deploys a web application on a virtual machine (VM).
+# It includes steps to clone the repository, install dependencies for the backend and frontend,
+# set up environment variables, and start the services (Flask, Node.js, and Streamlit).
+
+- name: Deploy app onto VM
   hosts: myVM
   become: yes
   tasks:
 
-    # Clone the git repository into /home/azureadmin/app
-    - name: Clone the git repo
+    - name: Clone the git repository
       git:
         repo: 'https://github.com/PierreMarcelZimmermann/Semester6_CloudComputingII_Praxis_app.git'
         dest: /home/azureadmin/app
         clone: yes
 
-    # Ensure pip for Python 3 is installed
     - name: Install pip for Python 3
       apt:
         name: python3-pip
         state: present
         update_cache: yes
-    
-    # Install the backend dependencies with pip
+
     - name: Install backend requirements with pip
       pip:
         requirements: /home/azureadmin/app/backend/requirements.txt
 
-    # Copy the .env file to the backend directory
     - name: Copy .env file to the backend directory
       copy:
         src: .env
         dest: /home/azureadmin/app/backend/.env
         mode: '0644'
 
-    # Start Flask app with environment variables loaded from .env
+    # Start Flask app with nohup so it runs in the background even after the SSH session ends
     - name: Start Flask app with environment variables from .env
       shell: |
         nohup sudo flask run --host=0.0.0.0 --port=5000 > /home/azureadmin/app/backend/flask.log 2>&1 &
       args:
         chdir: /home/azureadmin/app/backend
         executable: /bin/bash
+      # 'nohup' ensures that the Flask app runs in the background after the session ends.
+      # Output and errors are logged to flask.log for troubleshooting.
 
-    - name: Füge das Node.js Repository hinzu
+    # Add Node.js repository for LTS version installation
+    - name: Add Node.js repository
       ansible.builtin.shell: |
         curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -
       args:
         executable: /bin/bash
 
-    - name: Installiere Node.js
+    - name: Install Node.js
       ansible.builtin.package:
         name: nodejs
         state: present
 
-    # Install npm dependencies
-    - name: Run npm install
+    - name: Run npm install (frontend)
       command: npm install
       args:
         chdir: /home/azureadmin/app/frontend
 
-    # Copy the .env file to the frontend directory
     - name: Copy .env file to the frontend directory
       copy:
         src: .env
         dest: /home/azureadmin/app/frontend/.env
         mode: '0644'
 
-    # Run npm dev (frontend)
-    - name: Run npm dev
+    # Run npm dev in the background using nohup so the frontend server keeps running
+    - name: Run npm dev (frontend)
       shell: |
         source ~/.bashrc
         nohup npm run dev > /home/azureadmin/app/frontend/npm.log 2>&1 &
       args:
         chdir: /home/azureadmin/app/frontend
         executable: /bin/bash
+      # 'nohup' ensures that the frontend development server runs in the background.
+      # Output and errors are logged to npm.log for debugging.
 
-      # Start Streamlit dashboard in the background using nohup
+    # Start Streamlit dashboard in the background using nohup
     - name: Start Streamlit dashboard with nohup
       shell: |
         nohup sudo streamlit run /home/azureadmin/app/backend/dashboard.py --server.port 5001 > /home/azureadmin/app/dashboard.log 2>&1 &
       args:
         chdir: /home/azureadmin/app/backend
         executable: /bin/bash
+      # 'nohup' ensures that the Streamlit dashboard continues running in the background.
+      # Output and errors are logged to dashboard.log for monitoring.
