@@ -30,6 +30,7 @@ DB_SERVER=${azurerm_mysql_flexible_server.example.fqdn}
 DB=${azurerm_mysql_flexible_database.example.name}
 DB_ADMIN=${azurerm_mysql_flexible_server.example.administrator_login}
 DB_PASSWORD=${azurerm_mysql_flexible_server.example.administrator_password}
+NEXT_PUBLIC_VM_PUBLIC_IP=${azurerm_public_ip.my_terraform_public_ip.ip_address}
 EOT
 }
 
