@@ -16,7 +16,7 @@ Log in using az login with an Azure account that has sufficient permissions to c
 - Run `terraform init` 
 - Run `terraform apply --auto-approve` *twice* to ensure that the resources are correctly provisioned and any necessary dependencies are initialized
 ### Ansible
-- Use `cd /ansible` to navigate into the terraform directory
+- Use `cd /ansible` to navigate into the ansible directory
 - Install requirements using `pip install -r requirements.txt`
 - Use `ansible-playbook -i inventory.ini deploy.yml` to deploy the app
 ### Use App
