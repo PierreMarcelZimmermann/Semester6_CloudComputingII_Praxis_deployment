@@ -10,7 +10,7 @@ Before deploying the application, make sure the following tools are installed:
 ## Deployment
 This section explains the steps to deploy the app. The deployment process is automated using Ansible, but you must follow these preliminary steps to prepare your environment.
 ### Azure Auth
-Log in using az login with an Azure account that has sufficient permissions to create and manage resources.
+Log in using `az login` with an Azure account that has sufficient permissions to create and manage resources.
 ### Terraform 
 - Use `cd /terraform` to navigate into the terraform directory
 - Run `terraform init` 
